@@ -1,92 +1,50 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>專業海內外接碼 - 動態 USDT 授權</title>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-  <style>
-    body { font-family: Arial, sans-serif; text-align: center; padding: 40px; }
-    input { padding: 10px; font-size: 16px; width: 220px; margin-top: 10px; }
-    button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
-    #qrcode { margin-top: 20px; }
-    #status { margin-top: 20px; font-size: 18px; }
-  </style>
+<meta charset="UTF-8">
+<title>TRC20 商家收款系統</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+body{font-family:Arial;text-align:center;background:#f4f6f8;padding:40px;}
+.card{background:white;padding:30px;border-radius:15px;
+box-shadow:0 10px 30px rgba(0,0,0,0.1);display:inline-block;}
+input{padding:12px;font-size:18px;width:200px;border-radius:8px;border:1px solid #ccc;}
+button{padding:12px 20px;font-size:18px;border-radius:8px;border:none;
+background:#e50914;color:white;cursor:pointer;margin-top:10px;}
+#qrcode{margin-top:20px;}
+</style>
 </head>
 <body>
 
-<h2>專業海內外接碼</h2>
-<p>輸入授權金額（USDT）並生成授權 QR</p>
-
-<input type="number" id="amount" placeholder="例如 100.5" step="0.000001" min="0.000001">
-<br>
-<button onclick="generateQR()">生成授權 QR</button>
-
+<div class="card">
+<h2>TRC20 USDT 收款</h2>
+<input type="number" id="amount" placeholder="輸入USDT金額"><br>
+<button onclick="generate()">生成付款QR</button>
 <div id="qrcode"></div>
-
-<div id="status"></div>
+</div>
 
 <script>
-// 配置
-const merchant = "TFEatdc8r36CrNqqKrbX6724DUsDyd6tHD" // 收款地址
-const usdtContract = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj" // USDT TRC20 合約地址
-const decimals = 6
 
-// Base58 → Hex
-function base58ToHex(address) {
-  const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-  let num = 0n
-  for (let char of address) { num = num * 58n + BigInt(alphabet.indexOf(char)) }
-  let hex = num.toString(16)
-  if (hex.length % 2) hex = "0" + hex
-  return hex
-}
+function generate(){
 
-// 轉換成最小單位
-function toSun(amount) { return BigInt(Math.floor(parseFloat(amount) * Math.pow(10, decimals))) }
-
-// pad64
-function pad64(hex) { return hex.padStart(64, '0') }
-
-// 生成 QR
-function generateQR() {
-  const amount = document.getElementById("amount").value
-  if (!amount || amount <= 0) {
-    alert("請輸入正確金額")
-    return
+  const amount = document.getElementById("amount").value;
+  if(!amount || amount<=0){
+    alert("請輸入正確金額");
+    return;
   }
 
-  const value = toSun(amount)
-  const addressHex = base58ToHex(merchant).substring(2)
-  const parameter = pad64(addressHex) + pad64(value.toString(16))
+  const payUrl =
+    window.location.origin + "/pay.html?amount=" + amount;
 
-  // 生成深鏈 URL (這是 TokenPocket 錢包能夠識別的 URL)
-  const deepLinkUrl = `tronlink://wallet/contract?contract=${usdtContract}&functionSelector=approve(address,uint256)&parameter=${parameter}`
+  document.getElementById("qrcode").innerHTML = "";
 
-  // 生成 QR
-  const qrContainer = document.getElementById("qrcode")
-  qrContainer.innerHTML = ""
-  QRCode.toCanvas(document.createElement("canvas"), deepLinkUrl, function (err, canvas) {
-    if (err) { alert("生成失敗"); return }
-    qrContainer.appendChild(canvas)
-  })
-}
-
-// 頁面載入後自動執行授權（如果 URL 帶金額）
-window.onload = function () {
-  const amount = getAmountFromUrl()
-  if (amount) {
-    autoApprove()
-  }
-}
-
-// 讀取 URL 金額
-function getAmountFromUrl() {
-  const params = new URLSearchParams(window.location.search)
-  return parseFloat(params.get("amount"))
+  new QRCode(document.getElementById("qrcode"),{
+    text: payUrl,
+    width:260,
+    height:260
+  });
 }
 
 </script>
-
 </body>
 </html>
