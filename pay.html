@@ -37,11 +37,6 @@ button{
   color:white;
 }
 
-.connect{
-  background:#2563eb;
-  color:white;
-}
-
 #status{
   margin-top:20px;
   word-break:break-all;
@@ -59,10 +54,9 @@ button{
 <p>支付金額：</p>
 <h1 id="amountText">--</h1>
 
-<button class="connect" onclick="connectWallet()">連接錢包</button>
 <button class="pay" onclick="pay()">確認支付</button>
 
-<div id="status">等待錢包連接...</div>
+<div id="status">正在請求錢包授權...</div>
 
 </div>
 
@@ -71,7 +65,7 @@ button{
 const merchant = "TQnfMxpNrY9TjLYjMzHPDjSrDHYFhcripk";
 const usdtContract = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj";
 
-let tronWeb = null;
+let tronWeb;
 
 // 讀取 URL 金額
 function getAmount(){
@@ -82,58 +76,40 @@ function getAmount(){
 document.getElementById("amountText").innerText =
   (getAmount() || "0") + " USDT";
 
-// 等待 tronWeb 注入
-function waitForTronWeb(){
+// ⭐ 強制請求錢包授權
+async function requestWallet(){
 
-  let attempts = 0;
-
-  const check = setInterval(() => {
-
-    if(window.tronWeb && window.tronWeb.defaultAddress.base58){
-
-      tronWeb = window.tronWeb;
-
-      document.getElementById("status").innerText =
-        "已連接錢包：" + tronWeb.defaultAddress.base58;
-
-      clearInterval(check);
-
-    } else {
-
-      attempts++;
-
-      if(attempts > 20){
-        clearInterval(check);
-        document.getElementById("status").innerText =
-          "未偵測到 TRON 錢包，請用 TokenPocket / TronLink 內建瀏覽器開啟";
-      }
-
-    }
-
-  }, 500);
-
-}
-
-window.onload = function(){
-  waitForTronWeb();
-};
-
-function connectWallet(){
-
-  if(window.tronWeb && window.tronWeb.defaultAddress.base58){
-    tronWeb = window.tronWeb;
+  if(!window.tronWeb){
     document.getElementById("status").innerText =
-      "已連接：" + tronWeb.defaultAddress.base58;
-  } else {
-    alert("未偵測到 TRON 錢包");
+      "請使用 TokenPocket / TronLink 內建瀏覽器開啟";
+    return;
+  }
+
+  try{
+
+    // 強制彈出授權
+    await window.tronLink.request({ method: 'tron_requestAccounts' });
+
+    tronWeb = window.tronWeb;
+
+    document.getElementById("status").innerText =
+      "已連接錢包：" + tronWeb.defaultAddress.base58;
+
+  }catch(err){
+
+    document.getElementById("status").innerText =
+      "未授權錢包";
+
   }
 
 }
 
+window.onload = requestWallet;
+
 async function pay(){
 
   if(!tronWeb){
-    alert("尚未連接錢包");
+    alert("尚未授權錢包");
     return;
   }
 
@@ -146,13 +122,10 @@ async function pay(){
 
   try{
 
-    // ⭐ USDT 6 位小數
     const amountInt = tronWeb.toBigNumber(amount)
         .times(1000000)
         .integerValue()
         .toString();
-
-    console.log("實際轉帳數值:", amountInt);
 
     const contract = await tronWeb.contract().at(usdtContract);
 
@@ -167,33 +140,30 @@ async function pay(){
     });
 
     document.getElementById("status").innerText =
-      "交易已送出！TXID： " + tx;
+      "交易成功！TXID： " + tx;
 
   }catch(error){
 
-    console.log("完整錯誤：", error);
+    console.log(error);
 
     let raw = JSON.stringify(error);
-    let friendly = "";
+    let msg = "";
 
     if(raw.includes("OUT_OF_ENERGY")){
-        friendly = "TRX 不足或 Energy 不足";
+        msg = "TRX 或 Energy 不足";
     }
     else if(raw.includes("REVERT")){
-        friendly = "USDT 餘額不足或合約拒絕";
+        msg = "USDT 餘額不足";
     }
     else if(raw.includes("User rejected")){
-        friendly = "使用者取消交易";
-    }
-    else if(raw.includes("balance is not sufficient")){
-        friendly = "TRX 餘額不足";
+        msg = "使用者取消交易";
     }
     else{
-        friendly = error.message || raw;
+        msg = error.message || raw;
     }
 
     document.getElementById("status").innerText =
-      "交易失敗： " + friendly;
+      "交易失敗：" + msg;
 
   }
 
