@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>USDT TRC20 支付</title>
+<script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
+<style>
+body{font-family:Arial;text-align:center;background:#f4f6f8;padding:40px;}
+.card{background:white;padding:30px;border-radius:15px;
+box-shadow:0 10px 30px rgba(0,0,0,0.1);display:inline-block;}
+button{padding:12px 20px;font-size:18px;border-radius:8px;border:none;
+background:#e50914;color:white;cursor:pointer;margin-top:15px;}
+#status{margin-top:20px;font-weight:bold;}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>USDT TRC20 支付</h2>
+
+<p>收款地址：</p>
+<p><b>TQnfMxpNrY9TjLYjMzHPDjSrDHYFhcripk</b></p>
+
+<p>支付金額：</p>
+<h2 id="amountText"></h2>
+
+<button onclick="connect()">連接錢包</button>
+<button onclick="pay()">確認支付</button>
+
+<div id="status"></div>
+</div>
+
+<script>
+
+const merchant="TQnfMxpNrY9TjLYjMzHPDjSrDHYFhcripk";
+const usdt="TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj";
+
+let tronWeb;
+
+function getAmount(){
+  const params=new URLSearchParams(window.location.search);
+  return params.get("amount");
+}
+
+document.getElementById("amountText").innerText =
+  getAmount()+" USDT";
+
+async function connect(){
+  if(window.tronWeb && window.tronWeb.defaultAddress.base58){
+    tronWeb=window.tronWeb;
+    document.getElementById("status").innerText=
+      "已連接："+tronWeb.defaultAddress.base58;
+  }else{
+    alert("請用支援 TRON 的錢包內建瀏覽器開啟");
+  }
+}
+
+async function pay(){
+
+  if(!tronWeb){
+    alert("請先連接錢包");
+    return;
+  }
+
+  const amount=getAmount();
+  const amountSun=tronWeb.toSun(amount);
+
+  try{
+
+    const contract=await tronWeb.contract().at(usdt);
+
+    document.getElementById("status").innerText=
+      "等待錢包確認…";
+
+    const tx=await contract.transfer(
+      merchant,
+      amountSun
+    ).send();
+
+    document.getElementById("status").innerText=
+      "交易送出！TXID："+tx;
+
+  }catch(e){
+    document.getElementById("status").innerText=
+      "交易取消或失敗";
+  }
+}
+
+</script>
+</body>
+</html>
