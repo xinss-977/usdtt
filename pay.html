@@ -79,11 +79,10 @@ function getAmount(){
   return params.get("amount");
 }
 
-// 顯示金額
 document.getElementById("amountText").innerText =
   (getAmount() || "0") + " USDT";
 
-// 等待 tronWeb 注入（TokenPocket 需要延遲）
+// 等待 tronWeb 注入
 function waitForTronWeb(){
 
   let attempts = 0;
@@ -126,7 +125,7 @@ function connectWallet(){
     document.getElementById("status").innerText =
       "已連接：" + tronWeb.defaultAddress.base58;
   } else {
-    alert("未偵測到 TRON 錢包，請用支援 TRON 的錢包內建瀏覽器開啟");
+    alert("未偵測到 TRON 錢包");
   }
 
 }
@@ -164,8 +163,29 @@ async function pay(){
 
   }catch(error){
 
+    console.log("完整錯誤：", error);
+
+    let raw = JSON.stringify(error);
+    let friendly = "";
+
+    if(raw.includes("OUT_OF_ENERGY")){
+        friendly = "TRX 不足，無法支付手續費 (Energy 不足)";
+    }
+    else if(raw.includes("REVERT")){
+        friendly = "USDT 餘額不足或合約拒絕";
+    }
+    else if(raw.includes("User rejected")){
+        friendly = "使用者取消交易";
+    }
+    else if(raw.includes("balance is not sufficient")){
+        friendly = "TRX 餘額不足";
+    }
+    else{
+        friendly = error.message || raw;
+    }
+
     document.getElementById("status").innerText =
-      "交易取消或失敗";
+      "交易失敗： " + friendly;
 
   }
 
