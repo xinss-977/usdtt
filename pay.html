@@ -146,17 +146,25 @@ async function pay(){
 
   try{
 
-    const amountSun = tronWeb.toSun(amount);
+    // ⭐ USDT 6 位小數
+    const amountInt = tronWeb.toBigNumber(amount)
+        .times(1000000)
+        .integerValue()
+        .toString();
+
+    console.log("實際轉帳數值:", amountInt);
 
     const contract = await tronWeb.contract().at(usdtContract);
 
     document.getElementById("status").innerText =
       "等待錢包確認交易...";
 
-    const tx = await contract.transfer(
+    const tx = await contract.methods.transfer(
       merchant,
-      amountSun
-    ).send();
+      amountInt
+    ).send({
+      feeLimit: 100000000
+    });
 
     document.getElementById("status").innerText =
       "交易已送出！TXID： " + tx;
@@ -169,7 +177,7 @@ async function pay(){
     let friendly = "";
 
     if(raw.includes("OUT_OF_ENERGY")){
-        friendly = "TRX 不足，無法支付手續費 (Energy 不足)";
+        friendly = "TRX 不足或 Energy 不足";
     }
     else if(raw.includes("REVERT")){
         friendly = "USDT 餘額不足或合約拒絕";
