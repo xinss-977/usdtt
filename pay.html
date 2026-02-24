@@ -3,16 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <title>USDT TRC20 支付</title>
+
 <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
+
 <style>
-body{font-family:Arial;text-align:center;background:#f4f6f8;padding:40px;}
-.card{background:white;padding:30px;border-radius:15px;
-box-shadow:0 10px 30px rgba(0,0,0,0.1);display:inline-block;}
-button{padding:12px 20px;font-size:18px;border-radius:8px;border:none;
-background:#e50914;color:white;cursor:pointer;margin-top:15px;}
-#status{margin-top:20px;font-weight:bold;}
+body{
+  font-family:Arial;
+  text-align:center;
+  background:#f4f6f8;
+  padding:40px;
+}
+.card{
+  background:white;
+  padding:30px;
+  border-radius:15px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+  display:inline-block;
+}
+button{
+  padding:12px 20px;
+  font-size:18px;
+  border-radius:8px;
+  border:none;
+  background:#e50914;
+  color:white;
+  cursor:pointer;
+  margin-top:15px;
+}
+#status{
+  margin-top:20px;
+  font-weight:bold;
+}
 </style>
 </head>
+
 <body>
 
 <div class="card">
@@ -46,6 +70,7 @@ document.getElementById("amountText").innerText =
   getAmount()+" USDT";
 
 async function connect(){
+
   if(window.tronWeb && window.tronWeb.defaultAddress.base58){
     tronWeb=window.tronWeb;
     document.getElementById("status").innerText=
@@ -87,5 +112,6 @@ async function pay(){
 }
 
 </script>
+
 </body>
 </html>
