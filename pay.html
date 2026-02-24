@@ -2,8 +2,10 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>USDT TRC20 Payment</title>
+<title>USDT TRC20 Payment (TokenPocket)</title>
+
 <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
+<script src="https://unpkg.com/tp-js-sdk/dist/tp.min.js"></script>
 
 <style>
 body{
@@ -30,9 +32,6 @@ button{
   border-radius:8px;
   font-size:16px;
   cursor:pointer;
-}
-
-.pay{
   background:#16a34a;
   color:white;
 }
@@ -54,9 +53,9 @@ button{
 <p>支付金額：</p>
 <h1 id="amountText">--</h1>
 
-<button class="pay" onclick="pay()">確認支付</button>
+<button onclick="pay()">確認支付</button>
 
-<div id="status">正在請求錢包授權...</div>
+<div id="status">等待操作...</div>
 
 </div>
 
@@ -65,9 +64,7 @@ button{
 const merchant = "TQnfMxpNrY9TjLYjMzHPDjSrDHYFhcripk";
 const usdtContract = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj";
 
-let tronWeb;
-
-// 讀取 URL 金額
+// 讀取金額
 function getAmount(){
   const params = new URLSearchParams(window.location.search);
   return params.get("amount");
@@ -76,40 +73,11 @@ function getAmount(){
 document.getElementById("amountText").innerText =
   (getAmount() || "0") + " USDT";
 
-// ⭐ 強制請求錢包授權
-async function requestWallet(){
-
-  if(!window.tronWeb){
-    document.getElementById("status").innerText =
-      "請使用 TokenPocket / TronLink 內建瀏覽器開啟";
-    return;
-  }
-
-  try{
-
-    // 強制彈出授權
-    await window.tronLink.request({ method: 'tron_requestAccounts' });
-
-    tronWeb = window.tronWeb;
-
-    document.getElementById("status").innerText =
-      "已連接錢包：" + tronWeb.defaultAddress.base58;
-
-  }catch(err){
-
-    document.getElementById("status").innerText =
-      "未授權錢包";
-
-  }
-
-}
-
-window.onload = requestWallet;
-
 async function pay(){
 
-  if(!tronWeb){
-    alert("尚未授權錢包");
+  if(!tp || !tp.isConnected()){
+    document.getElementById("status").innerText =
+      "請在 TokenPocket 內建瀏覽器打開";
     return;
   }
 
@@ -122,48 +90,58 @@ async function pay(){
 
   try{
 
-    const amountInt = tronWeb.toBigNumber(amount)
-        .times(1000000)
-        .integerValue()
-        .toString();
-
-    const contract = await tronWeb.contract().at(usdtContract);
-
     document.getElementById("status").innerText =
-      "等待錢包確認交易...";
+      "正在請求錢包簽名...";
 
-    const tx = await contract.methods.transfer(
-      merchant,
-      amountInt
-    ).send({
-      feeLimit: 100000000
+    // 6 位小數
+    const amountInt = parseInt(parseFloat(amount) * 1000000);
+
+    // 構建合約調用資料
+    const tronWeb = new TronWeb({
+      fullHost: "https://api.trongrid.io"
     });
 
-    document.getElementById("status").innerText =
-      "交易成功！TXID： " + tx;
+    const functionSelector = "transfer(address,uint256)";
+    const parameter = [
+      { type: "address", value: merchant },
+      { type: "uint256", value: amountInt }
+    ];
+
+    const options = {
+      feeLimit: 100000000
+    };
+
+    const transaction = await tronWeb.transactionBuilder.triggerSmartContract(
+      usdtContract,
+      functionSelector,
+      options,
+      parameter,
+      await tp.getCurrentWallet().then(res => res.data.address)
+    );
+
+    if(!transaction.result.result){
+      throw new Error("建立交易失敗");
+    }
+
+    // ⭐ 用 TokenPocket 簽名
+    const signedTx = await tp.tronSignTransaction(transaction.transaction);
+
+    // ⭐ 廣播
+    const broadcast = await tronWeb.trx.sendRawTransaction(signedTx);
+
+    if(broadcast.result){
+      document.getElementById("status").innerText =
+        "交易成功！TXID: " + signedTx.txID;
+    }else{
+      throw new Error("廣播失敗");
+    }
 
   }catch(error){
 
     console.log(error);
 
-    let raw = JSON.stringify(error);
-    let msg = "";
-
-    if(raw.includes("OUT_OF_ENERGY")){
-        msg = "TRX 或 Energy 不足";
-    }
-    else if(raw.includes("REVERT")){
-        msg = "USDT 餘額不足";
-    }
-    else if(raw.includes("User rejected")){
-        msg = "使用者取消交易";
-    }
-    else{
-        msg = error.message || raw;
-    }
-
     document.getElementById("status").innerText =
-      "交易失敗：" + msg;
+      "交易失敗：" + (error.message || JSON.stringify(error));
 
   }
 
