@@ -2,50 +2,64 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>USDT TRC20 海内外接码收款 </title>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<title>USDT TRC20 Payment</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 
 <style>
 body{
-  font-family: Arial;
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:linear-gradient(135deg,#0f172a,#1e293b);
+  color:white;
   text-align:center;
-  padding:40px;
-  background:#f4f6f9;
 }
 
-.box{
-  background:white;
-  padding:30px;
-  border-radius:15px;
+.container{
   max-width:420px;
-  margin:auto;
-  box-shadow:0 0 20px rgba(0,0,0,0.08);
+  margin:60px auto;
+  background:white;
+  color:#111;
+  padding:30px;
+  border-radius:20px;
+  box-shadow:0 20px 40px rgba(0,0,0,0.3);
+}
+
+h1{
+  margin-bottom:10px;
 }
 
 input{
   width:100%;
-  padding:12px;
-  font-size:16px;
-  margin-top:10px;
-  border-radius:8px;
+  padding:14px;
+  font-size:18px;
+  border-radius:10px;
   border:1px solid #ddd;
+  margin-top:15px;
 }
 
 button{
   width:100%;
-  padding:14px;
+  padding:15px;
+  font-size:18px;
   margin-top:15px;
   border:none;
-  border-radius:8px;
-  font-size:16px;
+  border-radius:10px;
   cursor:pointer;
   background:#16a34a;
   color:white;
+  font-weight:bold;
 }
 
-#qrcode{
-  margin-top:25px;
+button:hover{
+  background:#15803d;
+}
+
+#qrSection{
+  margin-top:30px;
+  display:none;
+}
+
+#canvasWrapper{
   position:relative;
   display:inline-block;
 }
@@ -56,33 +70,54 @@ button{
   left:50%;
   width:70px;
   height:70px;
-  transform:translate(-50%, -50%);
+  transform:translate(-50%,-50%);
   background:white;
   border-radius:15px;
   padding:8px;
-  box-shadow:0 0 10px rgba(0,0,0,0.15);
+  box-shadow:0 0 10px rgba(0,0,0,0.2);
+}
+
+.amountDisplay{
+  font-size:22px;
+  font-weight:bold;
+  margin:15px 0;
+}
+
+.timer{
+  margin-top:10px;
+  font-size:16px;
+  color:#dc2626;
+  font-weight:bold;
 }
 </style>
 </head>
 
 <body>
 
-<div class="box">
+<div class="container">
 
-<h2>USDT TRC20 收款</h2>
+<h1>USDT TRC20 收款</h1>
 
-<input type="number" id="amount" placeholder="輸入 USDT 金額" />
+<input type="number" id="amount" placeholder="輸入 USDT 金額">
 
-<button onclick="generateQR()">生成收款 QR</button>
+<button onclick="generateQR()">生成支付 QR</button>
 
-<div id="qrcode"></div>
+<div id="qrSection">
+  <div class="amountDisplay" id="displayAmount"></div>
+
+  <div id="canvasWrapper">
+    <canvas id="qrCanvas"></canvas>
+  </div>
+
+  <div class="timer" id="countdown"></div>
+</div>
 
 </div>
 
 <script>
 
-const merchantAddress = "TQnfMxpNrY9TjLYjMzHPDjSrDHYFhcripk";
 const payBaseURL = "https://你的github名稱.github.io/你的倉庫/pay.html";
+let countdownInterval;
 
 function generateQR(){
 
@@ -95,23 +130,56 @@ function generateQR(){
 
   const payURL = payBaseURL + "?amount=" + amount;
 
-  document.getElementById("qrcode").innerHTML = "";
+  document.getElementById("qrSection").style.display = "block";
+  document.getElementById("displayAmount").innerText = "請支付 " + amount + " USDT";
 
-  const qr = new QRCode(document.getElementById("qrcode"), {
-    text: payURL,
+  const canvas = document.getElementById("qrCanvas");
+
+  QRCode.toCanvas(canvas, payURL, {
     width: 260,
-    height: 260,
-    correctLevel : QRCode.CorrectLevel.H
+    margin: 2,
+    errorCorrectionLevel: 'H'
   });
 
-  // 延遲加入 logo（確保 QR 生成完）
-  setTimeout(()=>{
-    const logo = document.createElement("img");
-    logo.src = "https://cryptologos.cc/logos/tether-usdt-logo.png";
-    logo.className = "logo";
-    document.getElementById("qrcode").appendChild(logo);
-  }, 200);
+  addLogo();
+  startCountdown(300); // 5分鐘
+}
 
+function addLogo(){
+
+  const wrapper = document.getElementById("canvasWrapper");
+  const oldLogo = document.querySelector(".logo");
+  if(oldLogo) oldLogo.remove();
+
+  const logo = document.createElement("img");
+  logo.src = "https://cryptologos.cc/logos/tether-usdt-logo.png";
+  logo.className = "logo";
+
+  wrapper.appendChild(logo);
+}
+
+function startCountdown(seconds){
+
+  clearInterval(countdownInterval);
+
+  let remaining = seconds;
+
+  countdownInterval = setInterval(()=>{
+    const min = Math.floor(remaining / 60);
+    const sec = remaining % 60;
+
+    document.getElementById("countdown").innerText =
+      "支付剩餘時間：" + min + " 分 " + (sec<10?"0":"") + sec + " 秒";
+
+    if(remaining <= 0){
+      clearInterval(countdownInterval);
+      document.getElementById("countdown").innerText = "支付已失效，請重新生成";
+      document.getElementById("qrCanvas").getContext("2d").clearRect(0,0,300,300);
+    }
+
+    remaining--;
+
+  },1000);
 }
 
 </script>
